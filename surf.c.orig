@@ -152,7 +152,6 @@ static char *untildepath(const char *path);
 static const char *getuserhomedir(const char *user);
 static const char *getcurrentuserhomedir(void);
 static Client *newclient(Client *c);
-static void parseuri(char *u);
 static void loaduri(Client *c, const Arg *a);
 static bool isvaliduri(const char *u);
 static const char *geturi(Client *c);
@@ -187,8 +186,6 @@ static void initwebextensions(WebKitWebContext *wc, Client *c);
 static GtkWidget *createview(WebKitWebView *v, WebKitNavigationAction *a,
                              Client *c);
 static gboolean buttonreleased(GtkWidget *w, GdkEvent *e, Client *c);
-static gboolean scrollmultiply(GtkWidget *w, GdkEvent *e, Client *c);
-
 static GdkFilterReturn processx(GdkXEvent *xevent, GdkEvent *event,
                                 gpointer d);
 static gboolean winevent(GtkWidget *w, GdkEvent *e, Client *c);
@@ -554,18 +551,6 @@ bool isvaliduri(const char *uri) { // very basic, not exhaustive
   return !dot || space;
 }
 
-void parseuri(char *uri) {
-  int len = strlen(uri);
-  for(int i=0; i<len; ++i) {
-    switch(uri[i]) {
-      case ' ':
-        uri[i] = '+';
-        break;
-    }
-  }
-  return uri;
-}
-
 void
 loaduri(Client *c, const Arg *a)
 {
@@ -590,8 +575,7 @@ loaduri(Client *c, const Arg *a)
 			url = g_strdup_printf("file://%s", path);
 			free(path);
   	} else if (isvaliduri(uri)) { // TODO handle spaces (parse)
-      parseuri(uri);
-		  url = g_strdup_printf("%s%s", searchengine, uri);
+		url = g_strdup_printf("%s%s", searchengine, uri);
 		} else {
 			url = g_strdup_printf("http://%s", uri);
 		}
@@ -1237,8 +1221,6 @@ newview(Client *c, WebKitWebView *rv)
 			 G_CALLBACK(titlechanged), c);
 	g_signal_connect(G_OBJECT(v), "button-release-event",
 			 G_CALLBACK(buttonreleased), c);
-	g_signal_connect(G_OBJECT(v), "scroll-event",
-			 G_CALLBACK(scrollmultiply), c);
 	g_signal_connect(G_OBJECT(v), "close",
 			G_CALLBACK(closeview), c);
 	g_signal_connect(G_OBJECT(v), "create",
@@ -1351,13 +1333,6 @@ buttonreleased(GtkWidget *w, GdkEvent *e, Client *c)
 		}
 	}
 
-	return FALSE;
-}
-
-gboolean
-scrollmultiply(GtkWidget *w, GdkEvent *e, Client *c)
-{
-	e->scroll.delta_y*=scrollmult;
 	return FALSE;
 }
 
